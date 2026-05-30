@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>asmtool</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 20px 32px;
+    border-bottom: 1px solid #21262d;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header h1 { font-size: 1.3rem; font-weight: 600; color: #58a6ff; }
+  header span { color: #8b949e; font-size: 0.9rem; }
+
+  .tabs {
+    display: flex;
+    gap: 0;
+    padding: 24px 32px 0;
+    border-bottom: 1px solid #21262d;
+  }
+  .tab {
+    padding: 10px 24px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #8b949e;
+    border-bottom: 2px solid transparent;
+    transition: all .2s;
+    user-select: none;
+  }
+  .tab:hover { color: #e6edf3; }
+  .tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+
+  .panel { display: none; padding: 28px 32px; flex: 1; }
+  .panel.active { display: flex; flex-direction: column; gap: 16px; }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    flex: 1;
+  }
+
+  .box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .box label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+
+  textarea {
+    flex: 1;
+    min-height: 360px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    color: #e6edf3;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    padding: 14px;
+    resize: vertical;
+    outline: none;
+    transition: border-color .2s;
+  }
+  textarea:focus { border-color: #58a6ff; }
+  textarea[readonly] { background: #0d1117; color: #79c0ff; }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    padding: 9px 20px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all .15s;
+  }
+  .btn-primary {
+    background: #238636;
+    color: #fff;
+  }
+  .btn-primary:hover { background: #2ea043; }
+  .btn-primary:disabled { background: #21262d; color: #8b949e; cursor: not-allowed; }
+
+  .btn-secondary {
+    background: #21262d;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+  }
+  .btn-secondary:hover { background: #30363d; }
+
+  .mode-select {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .mode-select span { font-size: 0.85rem; color: #8b949e; }
+  select {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #e6edf3;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .status {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    display: none;
+  }
+  .status.ok  { background: #0f2a1a; color: #3fb950; border: 1px solid #238636; display: block; }
+  .status.err { background: #2a0f0f; color: #f85149; border: 1px solid #da3633; display: block; }
+  .status.loading { background: #161b22; color: #8b949e; border: 1px solid #30363d; display: block; }
+
+  .copy-btn {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    font-size: 0.8rem;
+    padding: 5px 12px;
+    border-radius: 5px;
+  }
+  .copy-btn:hover { color: #e6edf3; border-color: #8b949e; }
+
+  @media (max-width: 768px) {
+    .row { grid-template-columns: 1fr; }
+    header, .tabs, .panel { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="#58a6ff">
+    <path d="M14.6 16.6l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4zm-5.2 0L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4z"/>
+  </svg>
+  <h1>asmtool</h1>
+  <span>convertor Assembly ↔ C pentru x86-64</span>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('asm2c')">ASM → C</div>
+  <div class="tab" onclick="switchTab('c2asm')">C → ASM</div>
+</div>
+
+<!-- Panel ASM -> C -->
+<div class="panel active" id="panel-asm2c">
+  <div class="actions">
+    <button class="btn-primary" onclick="convertAsmToC()">▶ Converteste</button>
+    <button class="btn-secondary" onclick="clearPanel('asm2c')">Sterge</button>
+    <div class="status" id="status-asm2c"></div>
+  </div>
+  <div class="row">
+    <div class="box">
+      <label>Cod Assembly (Intel / NASM)</label>
+      <textarea id="asm-input" spellcheck="false" placeholder="section .data&#10;    msg db &quot;hello&quot;, 10, 0&#10;&#10;section .text&#10;global main&#10;main:&#10;    push rbp&#10;    mov rbp, rsp&#10;    ..."></textarea>
+    </div>
+    <div class="box">
+      <div style="display:flex;align-items:center;">
+        <label>Cod C generat</label>
+        <button class="copy-btn" onclick="copyOutput('c-output')">Copiaza</button>
+      </div>
+      <textarea id="c-output" readonly spellcheck="false" placeholder="// rezultatul apare aici..."></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- Panel C -> ASM -->
+<div class="panel" id="panel-c2asm">
+  <div class="actions">
+    <button class="btn-primary" onclick="convertCToAsm()">▶ Converteste</button>
+    <button class="btn-secondary" onclick="clearPanel('c2asm')">Sterge</button>
+    <div class="mode-select">
+      <span>Mod:</span>
+      <select id="mode-select">
+        <option value="auto">Auto (human → gcc fallback)</option>
+        <option value="human">Human (idiomatic)</option>
+        <option value="gcc">GCC (orice C)</option>
+      </select>
+    </div>
+    <div class="status" id="status-c2asm"></div>
+  </div>
+  <div class="row">
+    <div class="box">
+      <label>Cod C</label>
+      <textarea id="c-input" spellcheck="false" placeholder="#include &lt;stdio.h&gt;&#10;&#10;int main(void) {&#10;    printf(&quot;hello\n&quot;);&#10;    return 0;&#10;}"></textarea>
+    </div>
+    <div class="box">
+      <div style="display:flex;align-items:center;">
+        <label>Cod Assembly generat</label>
+        <button class="copy-btn" onclick="copyOutput('asm-output')">Copiaza</button>
+      </div>
+      <textarea id="asm-output" readonly spellcheck="false" placeholder="; rezultatul apare aici..."></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+  const BASE = window.location.origin;
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((t,i) => {
+      t.classList.toggle('active', (i===0 && name==='asm2c') || (i===1 && name==='c2asm'));
+    });
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+  }
+
+  function setStatus(id, type, msg) {
+    const el = document.getElementById(id);
+    el.className = 'status ' + type;
+    el.textContent = msg;
+  }
+
+  function clearPanel(name) {
+    if (name === 'asm2c') {
+      document.getElementById('asm-input').value = '';
+      document.getElementById('c-output').value = '';
+    } else {
+      document.getElementById('c-input').value = '';
+      document.getElementById('asm-output').value = '';
+    }
+    document.getElementById('status-' + name).className = 'status';
+  }
+
+  function copyOutput(id) {
+    const val = document.getElementById(id).value;
+    if (!val) return;
+    navigator.clipboard.writeText(val).then(() => {
+      const btn = event.target;
+      btn.textContent = '✓ Copiat';
+      setTimeout(() => btn.textContent = 'Copiaza', 1500);
+    });
+  }
+
+  async function convertAsmToC() {
+    const code = document.getElementById('asm-input').value.trim();
+    if (!code) { setStatus('status-asm2c', 'err', 'Introdu cod assembly'); return; }
+    setStatus('status-asm2c', 'loading', 'Se converteste...');
+    try {
+      const r = await fetch(BASE + '/api/asm_to_c', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({code})
+      });
+      const data = await r.json();
+      if (data.ok) {
+        document.getElementById('c-output').value = data.code;
+        setStatus('status-asm2c', 'ok', '✓ Conversie reusita');
+      } else {
+        setStatus('status-asm2c', 'err', '✗ ' + (data.error || 'Eroare'));
+      }
+    } catch(e) {
+      setStatus('status-asm2c', 'err', '✗ Eroare de retea: ' + e.message);
+    }
+  }
+
+  async function convertCToAsm() {
+    const code = document.getElementById('c-input').value.trim();
+    const mode = document.getElementById('mode-select').value;
+    if (!code) { setStatus('status-c2asm', 'err', 'Introdu cod C'); return; }
+    setStatus('status-c2asm', 'loading', 'Se converteste...');
+    try {
+      const endpoint = mode === 'auto' ? '/api/c_to_asm_auto' : '/api/c_to_asm';
+      const r = await fetch(BASE + endpoint, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({code, mode})
+      });
+      const data = await r.json();
+      if (data.ok) {
+        document.getElementById('asm-output').value = data.code;
+        const fallback = data.fallback ? ' (fallback gcc)' : '';
+        setStatus('status-c2asm', 'ok', '✓ Conversie reusita' + fallback);
+      } else {
+        setStatus('status-c2asm', 'err', '✗ ' + (data.error || 'Eroare'));
+      }
+    } catch(e) {
+      setStatus('status-c2asm', 'err', '✗ Eroare de retea: ' + e.message);
+    }
+  }
+</script>
+</body>
+</html>

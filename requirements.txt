@@ -1,4 +1,1 @@
-flask
-flask-cors
 pycparser
-gunicorn
