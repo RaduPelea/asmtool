@@ -311,5 +311,93 @@
     }
   }
 </script>
+<footer>
+  <div class="restrictions">
+    <div class="rest-block">
+      <h3>ASM → C &nbsp;restrictions</h3>
+      <ul>
+        <li>Indirect jumps (<code>jmp rax</code>, <code>call [rax]</code>) are not supported</li>
+        <li>Functions without standard prologue (<code>push rbp / mov rbp, rsp</code>) may not have named variables</li>
+        <li>SIMD instructions (SSE/AVX: <code>movaps</code>, <code>addps</code>, …) are not translated</li>
+        <li>Self-modifying or intentionally obfuscated code is not supported</li>
+      </ul>
+    </div>
+    <div class="rest-block">
+      <h3>C → ASM &nbsp;restrictions <span>(human mode)</span></h3>
+      <ul>
+        <li><code>++</code> / <code>--</code> on global array elements (use <code>x = x + 1</code> instead)</li>
+        <li><code>NULL</code> or <code>stdin</code> without the correct <code>#include</code></li>
+        <li>Struct named initializers (<code>.field = value</code>)</li>
+        <li><code>sizeof</code> on complex types, <code>union</code>, <code>goto</code>, <code>varargs</code></li>
+        <li>Local arrays with inline initializers, unfinished TODO comments in code</li>
+        <li><em>If human mode fails → switch to GCC mode (supports any valid C)</em></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<style>
+  footer {
+    border-top: 1px solid #21262d;
+    padding: 28px 32px 36px;
+    margin-top: auto;
+  }
+  .restrictions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    max-width: 1100px;
+  }
+  .rest-block h3 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 12px;
+  }
+  .rest-block h3 span {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: #6e7681;
+  }
+  .rest-block ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .rest-block ul li {
+    font-size: 0.83rem;
+    color: #8b949e;
+    padding-left: 14px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .rest-block ul li::before {
+    content: '–';
+    position: absolute;
+    left: 0;
+    color: #444c56;
+  }
+  .rest-block ul li em {
+    color: #58a6ff;
+    font-style: normal;
+  }
+  .rest-block code {
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 0.78rem;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 3px;
+    padding: 1px 5px;
+    color: #79c0ff;
+  }
+  @media (max-width: 768px) {
+    .restrictions { grid-template-columns: 1fr; }
+    footer { padding: 20px 16px 28px; }
+  }
+</style>
 </body>
 </html>
