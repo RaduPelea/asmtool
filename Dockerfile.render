@@ -1,0 +1,22 @@
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y \
+    gcc g++ nasm git make \
+    && rm -rf /var/lib/apt/lists/*
+
+# Compileaza objconv din surse
+RUN git clone --depth=1 https://github.com/cagney/objconv.git /tmp/objconv && \
+    cd /tmp/objconv/src && g++ -O2 -w *.cpp -o /usr/local/bin/objconv && \
+    rm -rf /tmp/objconv
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# Sterge objconv-ul binar local (il folosim pe cel compilat in container)
+RUN rm -f objconv && ln -s /usr/local/bin/objconv objconv
+
+EXPOSE 5000
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "120", "app:app"]

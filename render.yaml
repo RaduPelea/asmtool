@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: asmtool
+    runtime: docker
+    dockerfilePath: ./Dockerfile.render
+    plan: free
+    envVars:
+      - key: PORT
+        value: 5000
